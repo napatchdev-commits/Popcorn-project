@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>สมุดป๊อบคอร์น</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500&family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff8e6;--card:#fff;--ink:#2b2118;--mute:#8a7a66;--line:#eadfc4;--in:#1f7a4d;--out:#c2412d;--main:#e8a317;--on:#2b2118}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1710;--card:#272016;--ink:#f6ead2;--mute:#a89b84;--line:#3a3022;--in:#52c98a;--out:#ff8a72;--main:#f2b632;--on:#1c1710}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Sarabun,sans-serif;padding:env(safe-area-inset-top) 0 calc(76px + env(safe-area-inset-bottom))}
+h1,h2,.big{font-family:Mitr,sans-serif;font-weight:500;margin:0}
+main{max-width:520px;margin:0 auto;padding:14px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.top-btns{display:flex;gap:6px}
+h1{font-size:22px}
+input,select,button{font:inherit;color:inherit}
+input,select{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card)}
+button{border:0;border-radius:10px;padding:11px 14px;background:var(--main);color:var(--on);font-weight:600;cursor:pointer;transition:opacity .15s}
+button:disabled{opacity:.6;cursor:not-allowed}
+button.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+button.x{background:none;color:var(--mute);padding:4px 8px;font-size:18px}
+:focus-visible{outline:3px solid var(--main);outline-offset:2px}
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.box{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px}
+.box small{color:var(--mute);display:block}
+.big{font-size:24px}
+.profit{grid-column:1/3;background:var(--ink);color:var(--bg);border:0}
+.profit small{color:var(--bg);opacity:.7}
+.in{color:var(--in)}.out{color:var(--out)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.seg button{background:var(--card);border:1.5px solid var(--line);color:var(--ink)}
+.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+form{display:grid;gap:8px;margin:8px 0 14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 12px;border-radius:99px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;font-size:14px;user-select:none}
+.chip.on{background:var(--out);border-color:var(--out);color:#fff}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:8px}
+.row>div:first-child{flex:1;min-width:0}
+.row small{color:var(--mute)}
+.empty{color:var(--mute);text-align:center;padding:24px 8px}
+nav{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-top:1.5px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:100}
+nav button{background:none;border-radius:0;padding:14px 4px;color:var(--mute)}
+nav button.on{color:var(--ink);box-shadow:inset 0 3px var(--main)}
+.err{background:var(--out);color:#fff;padding:10px 14px;border-radius:10px;margin:8px 0;font-size:14px}
+.ok{background:#2e7d32;color:#fff;padding:10px 14px;border-radius:10px;margin:8px 0;font-size:14px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+  <h1>🍿 สมุดป๊อบคอร์น</h1>
+  <div class="top-btns">
+    <button class="ghost" id="reload">รีเฟรช</button>
+    <button class="ghost" id="cfg" title="ตั้งค่าระบบ">⚙️</button>
+  </div>
+</div>
+<div id="msg"></div>
+<div id="v"></div>
+</main>
+<nav id="nav">
+<button data-t="day" class="on">วันนี้</button>
+<button data-t="hist">สรุปรายวัน</button>
+<button data-t="items">รายการจ่าย</button>
+</nav>
+<script>
+// ใส่ URL ของ Apps Script Web app ตรงนี้ (ลงท้ายด้วย /exec) หรือกรอกผ่านหน้าเว็บในครั้งแรก
+const CONFIG_API = "https://script.google.com/macros/s/AKfycbxSVsxxE5Xtl90Crq-mtzNu5cDqb7FzxzijMwYBjY_g4aZwJEhSYaI1B-Q978acMVRHTg/exec";
+let API = CONFIG_API || localStorage.getItem('api_url') || "https://script.google.com/macros/s/AKfycbxSVsxxE5Xtl90Crq-mtzNu5cDqb7FzxzijMwYBjY_g4aZwJEhSYaI1B-Q978acMVRHTg/exec";
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const baht = n => {
+  const num = Number(n) || 0;
+  if (num < 0) return '-฿' + Math.abs(num).toLocaleString('th-TH');
+  return '฿' + num.toLocaleString('th-TH');
+};
+const today = () => {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+};
+const normDate = s => {
+  if (!s) return '';
+  const str = String(s).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  return str;
+};
+const thDate = s => {
+  const n = normDate(s);
+  const d = new Date(n + 'T00:00:00');
+  if (isNaN(d.getTime())) return s;
+  return d.toLocaleDateString('th-TH', {weekday:'short', day:'numeric', month:'short', year:'2-digit'});
+};
+
+let S = {entries: [], items: [], tab: 'day', date: today(), kind: 'income', pick: '', ready: false, setting: false};
+let pin = localStorage.getItem('pin') || '';
+let saving = false;
+
+async function call(p, post) {
+  if (!API) throw new Error('ยังไม่ได้ระบุ URL ของ Apps Script Web App');
+  p.pin = pin;
+  let r;
+  try {
+    r = post
+      ? await fetch(API, {method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify(p)})
+      : await fetch(API + '?' + new URLSearchParams(p));
+  } catch (netErr) {
+    throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ ตรวจสอบอินเทอร์เน็ตหรือ URL ของ Apps Script');
+  }
+
+  let j;
+  try {
+    const text = await r.text();
+    j = JSON.parse(text);
+  } catch (jsonErr) {
+    throw new Error('ไม่สามารถอ่านข้อมูลได้ กรุณาตรวจสอบว่า Deploy Apps Script ด้วยสิทธิ์ "Anyone" (ทุกคน)');
+  }
+
+  if (j.error === 'pin') {
+    pin = '';
+    localStorage.removeItem('pin');
+    throw new Error('รหัส PIN ไม่ถูกต้อง กรุณากรอกใหม่อีกครั้ง');
+  }
+  if (j.error) throw new Error('เกิดข้อผิดพลาด: ' + j.error);
+  return j;
+}
+
+function fail(e) {
+  $('#msg').innerHTML = '<div class="err">' + esc(e.message || e) + '</div>';
+}
+function notify(m) {
+  $('#msg').innerHTML = '<div class="ok">' + esc(m) + '</div>';
+  setTimeout(() => {
+    const el = $('#msg .ok');
+    if (el) el.remove();
+  }, 2500);
+}
+
+async function load() {
+  $('#msg').innerHTML = '';
+  if (!API || !pin) {
+    S.ready = false;
+    render();
+    return;
+  }
+  const reloadBtn = $('#reload');
+  if (reloadBtn) reloadBtn.textContent = 'โหลด...';
+  try {
+    const j = await call({action: 'list'});
+    S.entries = (j.entries || []).map(e => ({ ...e, date: normDate(e.date) }));
+    S.items = j.items || [];
+    S.ready = true;
+    S.setting = false;
+  } catch (e) {
+    fail(e);
+  } finally {
+    if (reloadBtn) reloadBtn.textContent = 'รีเฟรช';
+  }
+  render();
+}
+
+async function save(p) {
+  if (saving) return;
+  saving = true;
+  const submitBtn = $('form button');
+  const prevText = submitBtn ? submitBtn.textContent : '';
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'กำลังบันทึก...'; }
+
+  try {
+    await call(p, true);
+    notify('✓ บันทึกข้อมูลสำเร็จ');
+    await load();
+  } catch (e) {
+    fail(e);
+  } finally {
+    saving = false;
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = prevText; }
+  }
+}
+
+function sums(list) {
+  const inc = list.filter(e => e.type === 'income').reduce((a, e) => a + (Number(e.amount) || 0), 0);
+  const exp = list.filter(e => e.type === 'expense').reduce((a, e) => a + (Number(e.amount) || 0), 0);
+  const net = Math.round((inc - exp) * 100) / 100;
+  return {
+    inc: Math.round(inc * 100) / 100,
+    exp: Math.round(exp * 100) / 100,
+    net
+  };
+}
+
+function viewSetup() {
+  return `
+  <div class="box" style="margin-top:10px">
+    <h2 style="margin-bottom:8px">⚙️ ตั้งค่าการเชื่อมต่อ</h2>
+    <p style="margin:0 0 12px;color:var(--mute);font-size:14px">กรุณาระบุ Web App URL ที่ได้จากการ Deploy Google Apps Script (ลงท้ายด้วย /exec)</p>
+    <form id="f-cfg">
+      <label><small>Apps Script Web App URL</small></label>
+      <input id="cfg-url" type="url" value="${esc(API)}" placeholder="https://script.google.com/macros/s/.../exec" required>
+      <label><small>รหัส PIN</small></label>
+      <input id="cfg-pin" type="password" inputmode="numeric" value="${esc(pin)}" placeholder="รหัส PIN (เริ่มต้น 1234)" required>
+      <button style="margin-top:6px">บันทึกและเชื่อมต่อ</button>
+      ${API ? `<button type="button" class="ghost" id="cancel-cfg">ยกเลิก</button>` : ''}
+    </form>
+  </div>`;
+}
+
+function viewPin() {
+  return `
+  <div class="box" style="margin-top:20px;text-align:center">
+    <h2 style="margin-bottom:6px">🔐 ใส่รหัส PIN</h2>
+    <p style="margin:0 0 14px;color:var(--mute);font-size:14px">กรอกรหัส PIN เพื่อเข้าใช้งานสมุดบัญชี</p>
+    <form id="f-pin">
+      <input id="in-pin" type="password" inputmode="numeric" placeholder="รหัส PIN" autofocus required style="text-align:center;font-size:20px;letter-spacing:4px">
+      <button style="margin-top:6px">เข้าสู่ระบบ</button>
+    </form>
+  </div>`;
+}
+
+function viewDay() {
+  const list = S.entries.filter(e => e.date === S.date);
+  const t = sums(list);
+  const exp = S.kind === 'expense';
+  return `
+  <input type="date" id="d" value="${S.date}" aria-label="เลือกวันที่">
+  <div class="sum">
+    <div class="box"><small>รายได้</small><div class="big in">${baht(t.inc)}</div></div>
+    <div class="box"><small>รายจ่าย</small><div class="big out">${baht(t.exp)}</div></div>
+    <div class="box profit"><small>เหลือสุทธิ</small><div class="big">${baht(t.net)}</div></div>
+  </div>
+  <div class="seg">
+    <button data-k="income" class="${exp ? '' : 'on'}">+ รายได้</button>
+    <button data-k="expense" class="${exp ? 'on' : ''}">− รายจ่าย</button>
+  </div>
+  <form id="f">
+    ${exp ? `<div class="chips">${S.items.map(i => `<span class="chip ${S.pick === i ? 'on' : ''}" data-i="${esc(i)}" role="button" tabindex="0">${esc(i)}</span>`).join('') || '<small>ยังไม่มีรายการจ่าย เพิ่มได้ที่แท็บ “รายการจ่าย”</small>'}</div>` : `<input id="note" placeholder="หมายเหตุ เช่น ถุงใหญ่ (ไม่ใส่ก็ได้)">`}
+    <input id="amt" type="number" inputmode="decimal" min="0.01" step="any" placeholder="จำนวนเงิน (บาท)" required>
+    <button>${exp ? 'บันทึกรายจ่าย' : 'บันทึกรายได้'}</button>
+  </form>
+  ${list.length ? list.slice().reverse().map(e => `
+    <div class="row"><div>${esc(e.item)}<br><small>${e.type === 'income' ? 'รายได้' : 'รายจ่าย'}</small></div>
+    <b class="${e.type === 'income' ? 'in' : 'out'}">${e.type === 'income' ? '+' : '−'}${baht(e.amount)}</b>
+    <button class="x" data-del="${esc(e.id)}" aria-label="ลบ">✕</button></div>`).join('')
+    : '<div class="empty">ยังไม่มีรายการของ ' + thDate(S.date) + '<br>กรอกจำนวนเงินด้านบนเพื่อเริ่มบันทึก</div>'}`;
+}
+
+function viewHist() {
+  const days = [...new Set(S.entries.map(e => e.date))].filter(Boolean).sort().reverse();
+  if (!days.length) return '<div class="empty">ยังไม่มีข้อมูล</div>';
+  const m = {};
+  days.forEach(d => { const k = d.slice(0, 7); (m[k] = m[k] || []).push(d); });
+  return Object.keys(m).map(k => {
+    const t = sums(S.entries.filter(e => e.date.startsWith(k)));
+    const dObj = new Date(k + '-01T00:00:00');
+    const mn = !isNaN(dObj.getTime()) ? dObj.toLocaleDateString('th-TH', {month: 'long', year: 'numeric'}) : k;
+    return `<h2 style="margin:14px 0 6px">${mn}</h2>
+    <div class="box"><small>รวมเดือนนี้</small>
+      <span class="in">รับ ${baht(t.inc)}</span> · <span class="out">จ่าย ${baht(t.exp)}</span> · <b>เหลือ ${baht(t.net)}</b></div>
+    ${m[k].map(d => { const s = sums(S.entries.filter(e => e.date === d));
+      return `<div class="row" data-go="${d}" style="cursor:pointer"><div>${thDate(d)}<br><small class="in">รับ ${baht(s.inc)}</small> <small class="out">จ่าย ${baht(s.exp)}</small></div><b>${baht(s.net)}</b></div>`; }).join('')}`;
+  }).join('');
+}
+
+function viewItems() {
+  return `<h2>รายการจ่าย</h2>
+  <form id="fi"><input id="ni" placeholder="ชื่อรายการ เช่น ข้าวโพด, น้ำมัน, ถุง" required><button>เพิ่มรายการ</button></form>
+  ${S.items.length ? S.items.map(i => `<div class="row"><div>${esc(i)}</div><button class="x" data-di="${esc(i)}" aria-label="ลบ">✕</button></div>`).join('')
+    : '<div class="empty">ยังไม่มีรายการ เพิ่มรายการแรกด้านบน</div>'}`;
+}
+
+function render() {
+  const nav = $('#nav');
+  if (S.setting || !API || !pin) {
+    if (nav) nav.classList.add('hide');
+    $('#v').innerHTML = (S.setting || !API) ? viewSetup() : viewPin();
+    return;
+  }
+  if (nav) nav.classList.remove('hide');
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
+  $('#v').innerHTML = !S.ready ? '<div class="empty">กำลังโหลดข้อมูล...</div>' : S.tab === 'day' ? viewDay() : S.tab === 'hist' ? viewHist() : viewItems();
+}
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'cfg') {
+    S.setting = !S.setting;
+    render();
+    return;
+  }
+  if (e.target.id === 'cancel-cfg') {
+    S.setting = false;
+    render();
+    return;
+  }
+
+  const t = e.target.closest('[data-t],[data-k],[data-i],[data-del],[data-di],[data-go]');
+  if (!t) return;
+  const d = t.dataset;
+  if (d.t) { S.tab = d.t; render(); }
+  else if (d.k) {
+    const amtVal = $('#amt') ? $('#amt').value : '';
+    S.kind = d.k;
+    S.pick = '';
+    render();
+    if (amtVal && $('#amt')) $('#amt').value = amtVal;
+  }
+  else if (d.i) {
+    // อัปเดตชิปโดยตรง ไม่ล้างฟอร์ม เพื่อไม่ให้ค่าใน #amt หาย
+    S.pick = (S.pick === d.i) ? '' : d.i;
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.i === S.pick));
+  }
+  else if (d.go) { S.date = d.go; S.tab = 'day'; render(); }
+  else if (d.del) { if (confirm('ลบรายการนี้?')) save({action: 'del', id: d.del}); }
+  else if (d.di) { if (confirm('ลบ “' + d.di + '” ออกจากรายการจ่าย? (ประวัติเดิมยังอยู่)')) save({action: 'delItem', item: d.di}); }
+});
+
+document.addEventListener('change', e => {
+  if (e.target.id === 'd') { S.date = e.target.value || today(); render(); }
+});
+
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.id === 'f-cfg') {
+    const url = $('#cfg-url').value.trim();
+    const p = $('#cfg-pin').value.trim();
+    if (!url) return fail('กรุณากรอก Web App URL');
+    API = url;
+    pin = p;
+    localStorage.setItem('api_url', url);
+    localStorage.setItem('pin', p);
+    S.setting = false;
+    load();
+    return;
+  }
+  if (e.target.id === 'f-pin') {
+    const p = $('#in-pin').value.trim();
+    if (!p) return fail('กรุณากรอกรหัส PIN');
+    pin = p;
+    localStorage.setItem('pin', p);
+    load();
+    return;
+  }
+  if (e.target.id === 'fi') {
+    const v = $('#ni').value.trim();
+    if (v) save({action: 'addItem', item: v});
+    return;
+  }
+  if (e.target.id === 'f') {
+    const amt = Number($('#amt').value);
+    if (!(amt > 0)) return fail('กรุณากรอกจำนวนเงินที่ถูกต้อง');
+    if (S.kind === 'expense') {
+      if (!S.pick) return fail('กรุณาเลือกรายการจ่ายก่อน');
+      save({action: 'add', date: S.date, type: 'expense', item: S.pick, amount: amt});
+    } else {
+      const note = $('#note') ? $('#note').value.trim() : '';
+      save({action: 'add', date: S.date, type: 'income', item: note || 'ขายป๊อบคอร์น', amount: amt});
+    }
+  }
+});
+
+$('#reload').onclick = load;
+load();
+</script>
+</body>
+</html>
